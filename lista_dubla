@@ -1,0 +1,188 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <malloc.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+typedef struct Vagon Vagon;
+typedef struct Nod Nod;
+typedef struct LDI LDI;
+
+struct Vagon
+{
+	int numarVagon;
+	char* firmaTransport;
+	int numarBileteVandute;
+	int capacitateVagon;
+};
+
+struct Nod
+{
+	Vagon vagon;
+	Nod* next;
+	Nod* prev;
+};
+
+struct LDI
+{
+	Nod* primul;
+	Nod* ultimul;
+};
+
+Vagon initializareVagon(int numarVagon, const char* firmaTransport, int numarBileteVandute, int capacitateVagon)
+{
+	Vagon v;
+	v.numarVagon = numarVagon;
+	v.firmaTransport = (char*)malloc(sizeof(char) * (strlen(firmaTransport) + 1));
+	strcpy(v.firmaTransport, firmaTransport);
+	v.numarBileteVandute = numarBileteVandute;
+	v.capacitateVagon = capacitateVagon;
+	return v;
+}
+
+void inserareFinal(LDI* lista, Vagon v)
+{
+	Nod* nou = (Nod*)malloc(sizeof(Nod));
+	nou->vagon = v;
+	nou->next = NULL;
+	nou->prev = lista->ultimul;
+	if (lista->ultimul)
+	{
+		lista->ultimul->next = nou;
+	}
+	else
+	{
+		lista->primul = nou;
+	}
+	lista->ultimul = nou;
+}
+
+void afisareVagon(Vagon v)
+{
+	printf("Vagonul numarul %d de la firma %s a vandut %d din %d bilete.\n", v.numarVagon, v.firmaTransport, v.numarBileteVandute, v.capacitateVagon);
+}
+
+void afisareInceputFinal(LDI lista)
+{
+	Nod* nodCurent = lista.primul;
+	while (nodCurent)
+	{
+		afisareVagon(nodCurent->vagon);
+		nodCurent = nodCurent->next;
+	}
+}
+
+void afisareFinalInceput(LDI lista)
+{
+	Nod* nodCurent = lista.ultimul;
+	while (nodCurent)
+	{
+		afisareVagon(nodCurent->vagon);
+		nodCurent = nodCurent->prev;
+	}
+}
+
+int determinareMinimBileteVandute(LDI lista)
+{
+	int min = INT_MAX;
+	Nod* nodCurent = lista.primul;
+	while (nodCurent)
+	{
+		if (nodCurent->vagon.numarBileteVandute < min)
+		{
+			min = nodCurent->vagon.numarBileteVandute;
+		}
+		nodCurent = nodCurent->next;
+	}
+	return min;
+}
+
+void stergereMinime(LDI* lista)
+{
+	int min = determinareMinimBileteVandute((*lista));
+
+	Nod* nodCurent = lista->primul;
+	while (nodCurent)
+	{
+		Nod* nodUrmator = nodCurent->next;
+
+		if (nodCurent->vagon.numarBileteVandute == min)
+		{
+			free(nodCurent->vagon.firmaTransport);
+
+			if (nodCurent->prev)
+				nodCurent->prev->next = nodCurent->next;
+			else
+				lista->primul = nodCurent->next;
+
+			if (nodCurent->next)
+				nodCurent->next->prev = nodCurent->prev;
+			else
+				lista->ultimul = nodCurent->prev;
+
+			free(nodCurent);
+		}
+
+		nodCurent = nodUrmator;
+	}
+}
+
+void eliberareLista(LDI* lista)
+{
+	Nod* nodCurent = lista->primul;
+	while (nodCurent)
+	{
+		Nod* nodUrmator = nodCurent->next;
+		free(nodCurent->vagon.firmaTransport);
+		free(nodCurent);
+		nodCurent = nodUrmator;
+	}
+
+	lista->primul = NULL;
+	lista->ultimul = NULL;
+}
+
+int main()
+{
+	LDI lista;
+	lista.primul = NULL;
+	lista.ultimul = NULL;
+
+	FILE* f = fopen("fisier.txt", "r");
+	if (f)
+	{
+		char buffer[50];
+		while (fgets(buffer, sizeof(buffer), f))
+		{
+			int numarVagon = atoi(buffer);
+
+			fgets(buffer, sizeof(buffer), f);
+			char* firma = (char*)malloc(sizeof(char) * (strlen(buffer) + 1));
+			strcpy_s(firma, strlen(buffer) + 1, buffer);
+			
+				firma[strlen(firma) - 1] = '\0';
+
+			fgets(buffer, sizeof(buffer), f);
+			int numarBilete = atoi(buffer);
+
+			fgets(buffer, sizeof(buffer), f);
+			int capacitate = atoi(buffer);
+
+			Vagon v = initializareVagon(numarVagon, firma, numarBilete, capacitate);
+			inserareFinal(&lista, v);
+		}
+		fclose(f);
+	}
+
+	printf("\nVagoanele inainte de stergere:\n");
+	afisareInceputFinal(lista);
+
+	stergereMinime(&lista);
+
+	printf("\nVagoanele dupa stergere:\n");
+	afisareInceputFinal(lista);
+
+	eliberareLista(&lista);
+
+}
