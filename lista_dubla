@@ -9,29 +9,25 @@ typedef struct Vagon Vagon;
 typedef struct Nod Nod;
 typedef struct LDI LDI;
 
-struct Vagon
-{
+struct Vagon {
 	int numarVagon;
 	char* firmaTransport;
 	int numarBileteVandute;
 	int capacitateVagon;
 };
 
-struct Nod
-{
+struct Nod {
 	Vagon vagon;
 	Nod* next;
 	Nod* prev;
 };
 
-struct LDI
-{
-	Nod* primul;
-	Nod* ultimul;
+struct LDI {
+	Nod* ultim;
+	Nod* prim;
 };
 
-Vagon initializareVagon(int numarVagon, const char* firmaTransport, int numarBileteVandute, int capacitateVagon)
-{
+Vagon initializareVagon(int numarVagon, char* firmaTransport, int numarBileteVandute, int capacitateVagon) {
 	Vagon v;
 	v.numarVagon = numarVagon;
 	v.firmaTransport = (char*)malloc(sizeof(char) * (strlen(firmaTransport) + 1));
@@ -41,31 +37,27 @@ Vagon initializareVagon(int numarVagon, const char* firmaTransport, int numarBil
 	return v;
 }
 
-void inserareFinal(LDI* lista, Vagon v)
-{
+void inserareFinal(LDI* lista, Vagon v) {
 	Nod* nou = (Nod*)malloc(sizeof(Nod));
 	nou->vagon = v;
 	nou->next = NULL;
-	nou->prev = lista->ultimul;
-	if (lista->ultimul)
+	nou->prev = lista->ultim;
+	if (lista->ultim)
 	{
-		lista->ultimul->next = nou;
+		lista->ultim->next = nou;
 	}
-	else
-	{
-		lista->primul = nou;
+	else {
+		lista->prim = nou;
 	}
-	lista->ultimul = nou;
+	lista->ultim = nou;
 }
 
-void afisareVagon(Vagon v)
-{
-	printf("Vagonul numarul %d de la firma %s a vandut %d din %d bilete.\n", v.numarVagon, v.firmaTransport, v.numarBileteVandute, v.capacitateVagon);
+void afisareVagon(Vagon v) {
+	printf("Vagonul cu numarul %d de la firma %s a vandut %d din %d bilete.\n", v.numarVagon, v.firmaTransport, v.numarBileteVandute, v.capacitateVagon);
 }
 
-void afisareInceputFinal(LDI lista)
-{
-	Nod* nodCurent = lista.primul;
+void afisareInceputFinal(LDI lista) {
+	Nod* nodCurent = lista.prim;
 	while (nodCurent)
 	{
 		afisareVagon(nodCurent->vagon);
@@ -73,9 +65,8 @@ void afisareInceputFinal(LDI lista)
 	}
 }
 
-void afisareFinalInceput(LDI lista)
-{
-	Nod* nodCurent = lista.ultimul;
+void afisareFinalInceput(LDI lista) {
+	Nod* nodCurent = lista.ultim;
 	while (nodCurent)
 	{
 		afisareVagon(nodCurent->vagon);
@@ -83,14 +74,11 @@ void afisareFinalInceput(LDI lista)
 	}
 }
 
-int determinareMinimBileteVandute(LDI lista)
-{
+int determinareMinimBilete(LDI lista) {
 	int min = INT_MAX;
-	Nod* nodCurent = lista.primul;
-	while (nodCurent)
-	{
-		if (nodCurent->vagon.numarBileteVandute < min)
-		{
+	Nod* nodCurent = lista.prim;
+	while (nodCurent) {
+		if (nodCurent->vagon.numarBileteVandute < min) {
 			min = nodCurent->vagon.numarBileteVandute;
 		}
 		nodCurent = nodCurent->next;
@@ -98,70 +86,61 @@ int determinareMinimBileteVandute(LDI lista)
 	return min;
 }
 
-void stergereMinime(LDI* lista)
-{
-	int min = determinareMinimBileteVandute((*lista));
+void stergereMinime(LDI* lista) {
+	int min = determinareMinimBilete((*lista));
 
-	Nod* nodCurent = lista->primul;
-	while (nodCurent)
-	{
+	Nod* nodCurent = lista->prim;
+
+	while (nodCurent) {
 		Nod* nodUrmator = nodCurent->next;
-
-		if (nodCurent->vagon.numarBileteVandute == min)
-		{
+		if (nodCurent->vagon.numarBileteVandute == min) {
 			free(nodCurent->vagon.firmaTransport);
 
 			if (nodCurent->prev)
 				nodCurent->prev->next = nodCurent->next;
 			else
-				lista->primul = nodCurent->next;
+				lista->prim = nodCurent->next;
 
 			if (nodCurent->next)
 				nodCurent->next->prev = nodCurent->prev;
 			else
-				lista->ultimul = nodCurent->prev;
-
+				lista->ultim = nodCurent->prev;
 			free(nodCurent);
 		}
-
 		nodCurent = nodUrmator;
 	}
 }
 
-void eliberareLista(LDI* lista)
-{
-	Nod* nodCurent = lista->primul;
-	while (nodCurent)
-	{
+void dezalocareLista(LDI* lista) {
+	Nod* nodCurent = lista->prim;
+	while (nodCurent) {
 		Nod* nodUrmator = nodCurent->next;
 		free(nodCurent->vagon.firmaTransport);
 		free(nodCurent);
+
 		nodCurent = nodUrmator;
 	}
-
-	lista->primul = NULL;
-	lista->ultimul = NULL;
+	lista->prim = NULL;
+	lista->ultim = NULL;
 }
 
-int main()
-{
-	LDI lista;
-	lista.primul = NULL;
-	lista.ultimul = NULL;
+int main() {
+	/*LDI lista;
+	lista.prim = NULL;
+	lista.ultim = NULL;
 
 	FILE* f = fopen("fisier.txt", "r");
 	if (f)
 	{
 		char buffer[50];
-		while (fgets(buffer, sizeof(buffer), f))
-		{
-			int numarVagon = atoi(buffer);
+		while (fgets(buffer, sizeof(buffer), f)) {
 
+			int numarVagon = atoi(buffer);
 			fgets(buffer, sizeof(buffer), f);
+
 			char* firma = (char*)malloc(sizeof(char) * (strlen(buffer) + 1));
 			strcpy_s(firma, strlen(buffer) + 1, buffer);
-			
-				firma[strlen(firma) - 1] = '\0';
+			firma[strlen(firma) - 1] = "\0";
 
 			fgets(buffer, sizeof(buffer), f);
 			int numarBilete = atoi(buffer);
@@ -174,15 +153,32 @@ int main()
 		}
 		fclose(f);
 	}
-
-	printf("\nVagoanele inainte de stergere:\n");
 	afisareInceputFinal(lista);
+	afisareFinalInceput(lista);
 
 	stergereMinime(&lista);
-
-	printf("\nVagoanele dupa stergere:\n");
 	afisareInceputFinal(lista);
+	dezalocareLista(&lista);*/
 
-	eliberareLista(&lista);
+	LDI lista;
+	lista.prim = NULL;
+	lista.ultim = NULL;
 
+	FILE* f = fopen("fisier.txt", "r");
+	int n;
+	fscanf(f, "%d", &n);
+	Vagon v;
+	char buffer[30];
+
+	for (int i = 0; i < n; i++)
+	{
+		fscanf(f, "%d", &v.numarVagon);
+		fscanf(f, "%s", buffer);
+		v.firmaTransport = (char*)malloc(sizeof(char) * (strlen(buffer) + 1));
+		strcpy(v.firmaTransport, buffer);
+		fscanf(f, "%d", &v.numarBileteVandute);
+		fscanf(f, "%d", &v.capacitateVagon);
+		inserareFinal(&lista, v);
+	}
+	afisareInceputFinal(lista);
 }
