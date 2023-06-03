@@ -1,0 +1,211 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <malloc.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Proiect Proiect;
+typedef struct Hashtable Hashtable;
+typedef struct Nod Nod;
+
+struct Proiect
+{
+    unsigned int cod;
+    char* titlu;
+    char* beneficiar;
+    unsigned char numarExecutanti;
+    float buget;
+};
+
+struct Nod
+{
+    Proiect proiect;
+    Nod* next;
+};
+
+struct Hashtable
+{
+    int dimensiune;
+    Nod** proiecte;
+};
+
+void adaugareListaFinal(Nod** cap, Proiect p)
+{
+    Nod* nou = (Nod*)malloc(sizeof(Nod));
+    nou->proiect = p;
+    nou->next = NULL;
+    if ((*cap))
+    {
+        Nod* auxiliarParcurgere = (*cap);
+        while (auxiliarParcurgere->next)
+        {
+            auxiliarParcurgere = auxiliarParcurgere->next;
+        }
+        auxiliarParcurgere->next = nou;
+    }
+    else
+    {
+        (*cap) = nou;
+    }
+}
+
+Proiect initializareProiect(unsigned int cod, const char* titlu, const char* beneficiar, unsigned char numarExecutanti, float buget)
+{
+    Proiect p;
+    p.cod = cod;
+    p.titlu = (char*)malloc(sizeof(char) * (strlen(titlu) + 1));
+    strcpy(p.titlu, titlu);
+    p.beneficiar = (char*)malloc(sizeof(char) * (strlen(beneficiar) + 1));
+    strcpy(p.beneficiar, beneficiar);
+    p.numarExecutanti = numarExecutanti;
+    p.buget = buget;
+    p.titlu[strlen(titlu)] = '\0';
+    p.beneficiar[strlen(beneficiar)] = '\0';
+    return p;
+}
+
+void initializareHash(Hashtable* tabela, int dimensiune)
+{
+    tabela->dimensiune = dimensiune;
+    tabela->proiecte = (Nod*)malloc(sizeof(Nod) * dimensiune);
+    for (int i = 0; i < dimensiune; i++)
+    {
+        tabela->proiecte[i] = NULL;
+    }
+}
+
+int calculHash(Hashtable tabela, const char* beneficiar)
+{
+    int sum = 0;
+    for (int i = 0; i < strlen(beneficiar); i++)
+    {
+        sum += beneficiar[i];
+    }
+    sum *= 7;
+    sum = sum % tabela.dimensiune;
+    return sum;
+}
+
+void inserareInHash(Hashtable tabela, Proiect p)
+{
+    int pozitie = calculHash(tabela, p.beneficiar);
+    adaugareListaFinal(&tabela.proiecte[pozitie], p);
+}
+
+void afisareProiect(Proiect p)
+{
+    printf("Proiectul %s are codul %d, beneficiarul %s, numarul de executanti %d si bugetul %.2f\n", p.titlu, p.cod, p.beneficiar, p.numarExecutanti, p.buget);
+}
+
+void afisareHash(Hashtable tabela)
+{
+    if (tabela.dimensiune > 0)
+    {
+        for (int i = 0; i < tabela.dimensiune; i++)
+        {
+            Nod* auxiliar = tabela.proiecte[i];
+            if (auxiliar)
+            {
+                while (auxiliar)
+                {
+                    printf("cod: %d, beneficiar %s\n", auxiliar->proiect.cod, auxiliar->proiect.beneficiar);
+                    auxiliar = auxiliar->next;
+                }
+            }
+            else
+            {
+
+            }
+        }
+    }
+}
+
+float calculareBugetTotal(Hashtable tabela, const char* beneficiar)
+{
+    float bugetTotal = 0;
+    int pozitie = calculHash(tabela, beneficiar);
+    Nod* aux = tabela.proiecte[pozitie];
+    while (aux)
+    {
+        if (strcmp(aux->proiect.beneficiar, beneficiar) == 0)
+        {
+            bugetTotal += aux->proiect.buget;
+        }
+        aux = aux->next;
+    }
+    return bugetTotal;
+}
+
+
+void modificareDenumire(const char* beneficiar, const char* denumireNoua, Hashtable* tabela)
+{
+    int pozitieBeneficiar = calculHash(*tabela, beneficiar);
+    int pozitieDenumireNoua = calculHash(*tabela, denumireNoua);
+    if (pozitieBeneficiar != pozitieDenumireNoua)
+    {
+        if ((*tabela).proiecte[pozitieBeneficiar])
+        {
+            Nod* aux = (*tabela).proiecte[pozitieBeneficiar];
+            while (aux)
+            {
+                Nod* urmatorul = aux->next;
+                if (strcmp(aux->proiect.beneficiar, beneficiar) == 0)
+                {
+                    free(aux->proiect.beneficiar);
+                    aux->proiect.beneficiar = (char*)malloc(sizeof(char) * (strlen(denumireNoua) + 1));
+                    strcpy(aux->proiect.beneficiar, denumireNoua);
+                    inserareInHash(*tabela, aux->proiect);
+                    aux->next = NULL;
+                    free(aux);
+                }
+                aux = urmatorul;
+            }
+            (*tabela).proiecte[pozitieBeneficiar] = NULL;
+        }
+    }
+}
+
+int main()
+{
+    Hashtable tabela;
+    FILE* f = fopen("fisier.txt", "r");
+    initializareHash(&tabela, 10);
+
+    if (f)
+    {
+        char buffer[50];
+        fgets(buffer, sizeof(buffer), f);
+        int numarElemente = atoi(buffer);
+        for (int i = 0; i < numarElemente; i++)
+        {
+            fgets(buffer, sizeof(buffer), f);
+            unsigned int cod = atoi(buffer);
+            fgets(buffer, sizeof(buffer), f);
+            buffer[strcspn(buffer, "\n")] = '\0';  // Remove newline character
+            char* titlu = (char*)malloc(sizeof(char) * (strlen(buffer) + 1));
+            strcpy(titlu, buffer);
+            fgets(buffer, sizeof(buffer), f);
+            buffer[strcspn(buffer, "\n")] = '\0';  // Remove newline character
+            char* beneficiar = (char*)malloc(sizeof(char) * (strlen(buffer) + 1));
+            strcpy(beneficiar, buffer);
+            fgets(buffer, sizeof(buffer), f);
+            unsigned char numarExecutanti = atoi(buffer);
+            fgets(buffer, sizeof(buffer), f);
+            float buget = atof(buffer);
+            Proiect p = initializareProiect(cod, titlu, beneficiar, numarExecutanti, buget);
+            inserareInHash(tabela, p);
+        }
+        fclose(f);
+
+        afisareHash(tabela);
+        printf("\n");
+        printf("Buget total pentru beneficiarul %s este: %.2f\n", "Benefi3", calculareBugetTotal(tabela, "Benefi3"));
+        printf("\n");
+        printf("\naici se modif\n");
+        modificareDenumire("Benefi1", "Benefi2", &tabela);
+        afisareHash(tabela);
+
+
+    }
+}
+
