@@ -1,0 +1,168 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <string.h>
+typedef struct Rezervare Rezervare;
+typedef struct Nod Nod;
+struct Rezervare
+{
+	unsigned int id;
+	char* denumireHotel;
+	unsigned char camereRezervate;
+	char* numeClient;
+	float sumaPlata;
+};
+
+struct Nod
+{
+	Rezervare rezervare;
+	Nod* stanga;
+	Nod* dreapta;
+};
+
+void inserareNod(Nod** radacina, Rezervare r)
+{
+	if (*radacina != NULL)
+	{
+		if ((*radacina)->rezervare.id > r.id)
+		{
+			inserareNod(&(*radacina)->stanga, r);
+		}
+		else
+		{
+			inserareNod(&(*radacina)->dreapta, r);
+		}
+	}
+	else
+	{
+		Nod* nou = (Nod*)malloc(sizeof(Nod));
+		nou->rezervare = r;
+		nou->dreapta = NULL;
+		nou->stanga = NULL;
+		(*radacina) = nou;
+	}
+}
+
+Rezervare initializareRezervare(unsigned int id, char* denumireHotel, unsigned char camereRezervate, char* numeClient, float sumaPlata)
+{
+	Rezervare r;
+	r.id = id;
+	r.denumireHotel = (char*)malloc(sizeof(char) * (strlen(denumireHotel) + 1));
+	strcpy_s(r.denumireHotel, strlen(denumireHotel) + 1, denumireHotel);
+	r.camereRezervate = camereRezervate;
+	r.numeClient = (char*)malloc(sizeof(char) * (strlen(numeClient) + 1));
+	strcpy_s(r.numeClient, strlen(numeClient) + 1, numeClient);
+	r.sumaPlata = sumaPlata;
+	return r;
+}
+
+void afisareRezervare(Rezervare r)
+{
+	printf("Id rezervare : %d, denumire client: %s nume client : %s, numar camere rezervate :%d, de plata %.2f\n", r.id, r.denumireHotel, r.numeClient, r.camereRezervate, r.sumaPlata);
+}
+
+void afisarePreOrdine(Nod* radacina)
+{
+	if (radacina)
+	{
+		afisareRezervare(radacina->rezervare);
+		afisarePreOrdine(radacina->stanga);
+		afisarePreOrdine(radacina->dreapta);
+	}
+}
+
+float valoareRezervari(const char* numeClient, Nod* radacina)
+{
+	if (radacina)
+	{
+		if (strcmp(radacina->rezervare.numeClient, numeClient) == 0)
+		{
+			return radacina->rezervare.sumaPlata + valoareRezervari(numeClient, radacina->stanga) + valoareRezervari(numeClient, radacina->dreapta);
+		}
+		else
+			return valoareRezervari(numeClient, radacina->stanga) + valoareRezervari(numeClient, radacina->dreapta);
+	}
+	else
+		return 0;
+}
+
+int calculareCheieMinima(Nod* radacina)
+{
+	if (radacina->stanga == NULL)
+		return radacina->rezervare.id;
+	else
+		return calculareCheieMinima(radacina->stanga); // Adăugăm instrucțiunea return aici
+}
+
+void stergereCheieMinima(Nod** radacina)
+{
+	if (*radacina != NULL)
+	{
+		if ((*radacina)->stanga == NULL)
+		{
+			Nod* temp = *radacina;
+			*radacina = (*radacina)->dreapta;
+			free(temp->rezervare.denumireHotel);
+			free(temp->rezervare.numeClient);
+			free(temp);
+		}
+		else
+		{
+			stergereCheieMinima(&(*radacina)->stanga);
+		}
+	}
+}
+
+
+
+
+int main()
+{
+	Nod* radacina = NULL;
+	FILE* f = fopen("fisier.txt", "r");
+	if (f)
+	{
+		char buffer[50];
+		fgets(buffer, 10, f);
+		int numarElemente = atoi(buffer);
+		for (int i = 0; i < numarElemente; i++)
+		{
+			fgets(buffer, 10, f);
+			unsigned int id = atoi(buffer);
+
+			fgets(buffer, 30, f);
+			char* sir = strtok(buffer, "\n");
+			char* denumire = (char*)malloc(sizeof(char) * (strlen(sir) + 1));
+			strcpy_s(denumire, strlen(sir) + 1, sir);
+
+			fgets(buffer, 10, f);
+			int aux = atoi(buffer);
+			unsigned char numarCamere = aux;
+
+			fgets(buffer, 30, f);
+			sir = strtok(buffer, "\n");
+			char* nume = (char*)malloc(sizeof(char) * (strlen(sir) + 1));
+			strcpy_s(nume, strlen(sir) + 1, sir);
+
+			fgets(buffer, 10, f);
+			float suma = atof(buffer);
+
+			Rezervare r = initializareRezervare(id, denumire, numarCamere, nume, suma);
+			inserareNod(&radacina, r);
+		}
+		afisarePreOrdine(radacina);
+		printf("\n");
+
+		printf("%.2f\n", valoareRezervari("John", radacina));
+
+		stergereCheieMinima(&radacina);
+		afisarePreOrdine(radacina);
+
+		printf("\n");
+
+
+	}
+
+
+}
