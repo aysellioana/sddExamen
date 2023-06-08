@@ -114,7 +114,25 @@ void stergereCheieMinima(Nod** radacina)
 	}
 }
 
-
+void dezalocare(nodArb *rad)
+{
+	/*if (rad != NULL)
+	{
+		nodArb* stanga = rad->left;
+		nodArb* dreapta = rad->right;
+		free(rad->inf.denumire);
+		free(rad);
+		dezalocare(stanga);
+		dezalocare(dreapta);
+	}*/
+	if (rad != NULL)
+	{
+		free(rad->inf.denumire);
+		dezalocare(rad->left);
+		dezalocare(rad->right);
+		free(rad);
+	}
+}
 
 
 int main()
